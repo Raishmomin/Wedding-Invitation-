@@ -1,15 +1,14 @@
 /* Makes the artwork for the envelope, lit once here because lighting is too slow for phones:
 
-     public/emboss/ornament-top|bottom.webp   baroque scrollwork pressed into the top and bottom flaps
-     public/emboss/ornament-left|right.webp   tall scrollwork for the two side flaps
-     public/emboss/badge.webp                 the wax seal, with our initials pressed into it
-     public/emboss/pendant.webp               the drop that hangs from it: gold cord, a pearl, a silk feather
-     public/paper.webp                        the same scrollwork as an all-over damask, behind the cards
+     public/emboss/leaves-*.webp     leafy branches pressed into the flaps (top-left, top-right, left, right, bottom)
+     public/emboss/badge.webp        the wax seal, with our initials pressed into it
+     public/emboss/pendant.webp      the drop that hangs from it: gold cord, a pearl, a silk feather
+     public/paper.webp               the same leaves scattered all over, behind the cards
 
    Run it again after changing anything here or the initials in lib/config.js:   npm run emboss
 
-   Each piece is drawn as a height map (brighter = higher) and lit from the top left. The scrollwork keeps
-   only its light and shade, on a transparent ground, so it sits on the paper colour set in globals.css. */
+   Each piece is drawn as a height map (brighter = higher) and lit from the top left. The leaves keep only
+   their light and shade, on a transparent ground, so they sit on the paper colour set in globals.css. */
 import { fileURLToPath } from "node:url";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -23,98 +22,52 @@ writeFileSync(fontsConf, `<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "font
 process.env.FONTCONFIG_FILE = fontsConf;
 const { default: sharp } = await import("sharp");
 
+function rng(seed){ return () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const f = n => n.toFixed(1);
-const GROOVE = "#555";
+const GROOVE = "#555", VEIN = "#767676", STEM = "#8c8c8c";
 
-/* ---------- baroque scrollwork ---------- */
-const bez = (p0, c1, c2, p1, n = 22) => Array.from({ length: n }, (_, i) => {
-  const t = (i + 1) / n, u = 1 - t;
-  return [0, 1].map(k => u*u*u*p0[k] + 3*u*u*t*c1[k] + 3*u*t*t*c2[k] + t*t*t*p1[k]);
-});
-
-function petal(x, y, deg, L, w = L * .26){
+/* ---------- embossed botanicals ---------- */
+/* A leaf lying along +x from its stalk: a low dome with a pressed midrib and side veins. `sway` bends its tip. */
+function leaf(r, x, y, deg, L, sway = 0){
+  const w = L * (.25 + r() * .06), c = sway * L;
+  let veins = "";
+  for(let k = 1; k <= 4; k++){
+    const t = k / 5.2, x0 = L * t, y0 = c * t * t, reach = w * .7 * (1 - t * .55);
+    veins += `M${f(x0)} ${f(y0)}L${f(x0 + L * .13)} ${f(y0 - reach)}M${f(x0)} ${f(y0)}L${f(x0 + L * .13)} ${f(y0 + reach)}`;
+  }
   return `<g transform="translate(${f(x)} ${f(y)}) rotate(${f(deg)})">
-    <path d="M0 0C${f(L*.3)} ${f(-w)} ${f(L*.72)} ${f(-w*.9)} ${f(L)} 0C${f(L*.72)} ${f(w*.9)} ${f(L*.3)} ${f(w)} 0 0Z" fill="url(#ridge)" stroke="#6a6a6a" stroke-width=".7"/>
-    <path d="M${f(L*.12)} 0H${f(L*.84)}" stroke="${GROOVE}" stroke-width="1.1" stroke-linecap="round"/></g>`;
+    <path d="M0 0C${f(L*.26)} ${f(-w*1.05)} ${f(L*.66)} ${f(-w*.9 + c*.55)} ${f(L)} ${f(c)}C${f(L*.7)} ${f(w*.82 + c*.55)} ${f(L*.3)} ${f(w)} 0 0Z" fill="url(#ridge)" stroke="#6a6a6a" stroke-width=".7"/>
+    <path d="M${f(L*.03)} 0Q${f(L*.5)} ${f(c*.18)} ${f(L*.95)} ${f(c*.94)}" fill="none" stroke="${GROOVE}" stroke-width="1.3" stroke-linecap="round"/>
+    <path d="${veins}" fill="none" stroke="${VEIN}" stroke-width=".8" stroke-linecap="round"/></g>`;
 }
-const bead = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#dome)" stroke="#5a5a5a" stroke-width=".6"/>`;
 
-/* A raised ribbon: curved legs, then a curl that keeps turning the way it was heading (turn: 1 clockwise,
-   -1 anticlockwise) and winds in from radius R to a bead.
-   feather: small leaves along one side of the legs (side: 1 right of travel, -1 left; from/to: share of the length),
-   which is what makes a scroll read as acanthus. */
-function ribbon(start, legs, { turn = 0, R = 16, turns = 1.2, end = 3.5, w = 5, feather } = {}){
-  let pts = [start], knob = "", leaves = "";
-  for(const [c1, c2, p] of legs) pts = pts.concat(bez(pts[pts.length - 1], c1, c2, p));
-  if(feather){
-    const { side, from = .1, to = .6, every = 11, len = 15 } = feather;
-    const run = [0]; for(let i = 1; i < pts.length; i++) run.push(run[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-    const total = run[run.length - 1];
-    for(let d = from * total; d <= to * total; d += every){
-      const i = Math.max(1, run.findIndex(v => v >= d)), [x, y] = pts[i], [px, py] = pts[i - 1];
-      const along = (d / total - from) / (to - from);   // leaves shrink toward the curl
-      const L = len * (1 - .3 * along);
-      leaves += petal(x, y, (Math.atan2(y - py, x - px) + side * .95) * 57.296, L, L * .34);
+/* A branch from its base to its tip: a curved stem, leaves on alternate sides (largest in the middle, each
+   bending back toward the stem), a few sprigs of berries, and a leaf at the tip. */
+function branch(r, x0, y0, x1, y1, { bend = 0, leafLen = 60, leaves = 8, spread = .58, berries = .2 } = {}){
+  const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
+  const mx = (x0 + x1) / 2 - dy / len * bend, my = (y0 + y1) / 2 + dx / len * bend;
+  const at = t => { const u = 1 - t; return [u*u*x0 + 2*u*t*mx + t*t*x1, u*u*y0 + 2*u*t*my + t*t*y1, Math.atan2(2*u*(my - y0) + 2*t*(y1 - my), 2*u*(mx - x0) + 2*t*(x1 - mx))]; };
+  const half = .55, [hx, hy] = at(half);   // the lower half of the stem is a little thicker
+  let s = `<path d="M${f(x0)} ${f(y0)}Q${f(mx)} ${f(my)} ${f(x1)} ${f(y1)}" fill="none" stroke="${STEM}" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M${f(x0)} ${f(y0)}Q${f(x0 + (mx - x0) * half)} ${f(y0 + (my - y0) * half)} ${f(hx)} ${f(hy)}" fill="none" stroke="${STEM}" stroke-width="3.8" stroke-linecap="round"/>`;
+  for(let k = 0; k < leaves; k++){
+    const t = .07 + k / leaves * .86, [px, py, ta] = at(t), side = k % 2 ? 1 : -1;
+    const L = leafLen * (.62 + .46 * Math.sin(Math.PI * (.12 + t * .8))) * (.88 + r() * .24);
+    s += leaf(r, px, py, (ta + side * (spread + r() * .22)) * 57.296, L, -side * (.04 + r() * .07));
+    if(r() < berries){
+      const a = ta - side * (.9 + r() * .3), bx = px + Math.cos(a) * 13, by = py + Math.sin(a) * 13;
+      s += `<path d="M${f(px)} ${f(py)}L${f(bx)} ${f(by)}" stroke="${STEM}" stroke-width="1.3"/>`;
+      for(let b = 0; b < 2 + (r() < .5); b++){
+        const ba = a + (b - .8) * .9, cx = bx + Math.cos(ba) * 4.2, cy = by + Math.sin(ba) * 4.2;
+        s += `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(3.1 + r() * .9)}" fill="url(#dome)" stroke="#5a5a5a" stroke-width=".6"/>`;
+      }
     }
   }
-  if(turn){
-    const [x, y] = pts[pts.length - 1], [px, py] = pts[pts.length - 3];
-    const th = Math.atan2(y - py, x - px), cx = x - Math.sin(th) * turn * R, cy = y + Math.cos(th) * turn * R;
-    const a0 = Math.atan2(y - cy, x - cx), total = turns * 6.283, k = Math.log(R / end) / total;
-    for(let phi = .12; phi <= total; phi += .12){ const rr = R * Math.exp(-k * phi), a = a0 + turn * phi; pts.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]); }
-    const [ex, ey] = pts[pts.length - 1];
-    knob = `<circle cx="${f(ex)}" cy="${f(ey)}" r="${f(w * .8)}" fill="url(#dome)"/>`;
-  }
-  const d = pts.map(([x, y], i) => (i ? "L" : "M") + f(x) + " " + f(y)).join("");
-  const line = `fill="none" stroke-linecap="round" stroke-linejoin="round"`;   // a wide low band with a narrow high crest = a rounded ridge
-  return `${leaves}<path d="${d}" ${line} stroke="#8e8e8e" stroke-width="${w}"/><path d="${d}" ${line} stroke="#cdcdcd" stroke-width="${f(w * .42)}"/>${knob}`;
+  const [tx, ty, ta] = at(1);
+  return s + leaf(r, tx, ty, ta * 57.296, leafLen * .66);
 }
-
-/* The damask for the top flap: drawn for the right of the centre line and mirrored. It fills a triangle,
-   corner to corner at the top and narrowing to a point, so it sits inside the flap; flipped, it points up
-   for the bottom flap. Fits a 420×330 box. */
-function damask(W, H, flip){
-  const half = [
-    // heart: from the foot, out and up, curling in over the top
-    ribbon([5, 236], [[[38, 230], [80, 202], [80, 164]], [[80, 130], [58, 106], [34, 110]]], { turn: -1, R: 18, w: 7, feather: { side: 1, from: .08, to: .36, len: 16 } }),
-    // great volute: springs from the heart's flank, sweeps out and rolls in under the shoulder
-    ribbon([84, 156], [[[116, 156], [142, 130], [144, 98]], [[146, 72], [134, 52], [116, 54]]], { turn: -1, R: 22, turns: 1.35, w: 7, feather: { side: 1, from: .04, to: .4, len: 16 } }),
-    // wing: leaves the volute's back for the top corner and rolls in
-    ribbon([144, 104], [[[160, 94], [174, 74], [174, 52]], [[174, 34], [164, 18], [150, 22]]], { turn: -1, R: 12, w: 5.8, feather: { side: -1, from: .12, to: .5, len: 13 } }),
-    // crown scroll: rises beside the centre line and rolls out over the heart
-    ribbon([14, 96], [[[18, 68], [44, 44], [76, 44]]], { turn: 1, R: 15, w: 6, feather: { side: -1, from: .3, to: .92, len: 16 } }),
-    // offshoot from the heart, curling down and back
-    ribbon([78, 176], [[[92, 180], [104, 192], [100, 206]]], { turn: 1, R: 9, w: 5 }),
-    // foot: a small curl either side of the finial
-    ribbon([9, 250], [[[22, 250], [36, 256], [38, 268]]], { turn: 1, R: 8, w: 4.8 }),
-    // acanthus between the heart and the volute, and a palmette growing from the volute's crown
-    petal(82, 150, -105, 36, 10), petal(87, 148, -62, 25, 7.5),
-    petal(118, 52, -90, 28, 7), petal(118, 52, -124, 21, 6), petal(118, 52, -56, 21, 6),
-    petal(0, 214, -58, 42, 11), petal(0, 246, 48, 22, 6.5), petal(0, 78, -58, 38, 10),
-  ].join("");
-  const axis = [
-    petal(0, 214, -90, 58, 9.5), bead(0, 225, 5),               // lily inside the heart
-    petal(0, 246, 90, 66, 13),                                  // finial: the point of the ornament
-    petal(0, 78, -90, 56, 8.5), bead(0, 90, 4.6), bead(0, 104, 3),
-  ].join("");
-  const art = `<g transform="translate(${W / 2} 6)">${half}<g transform="scale(-1 1)">${half}</g>${axis}</g>`;
-  return flip ? `<g transform="translate(0 ${H}) scale(1 -1)">${art}</g>` : art;
-}
-
-/* The side flap's ornament: a vine of scrolls running down from the centre line, mirrored above it, with a
-   palmette on the line pointing at the seal. Drawn for the left flap (fits 130×560); mirrored for the right. */
-function sideDamask(W, H, mirror){
-  const lower = [
-    ribbon([12, 16], [[[36, 20], [70, 40], [74, 72]], [[76, 96], [60, 112], [44, 104]]], { turn: 1, R: 14, w: 6.6, feather: { side: -1, from: .22, to: .6, len: 17 } }),
-    ribbon([70, 100], [[[84, 124], [80, 156], [58, 170]], [[40, 182], [20, 172], [22, 152]]], { turn: 1, R: 14, w: 6, feather: { side: -1, from: .08, to: .5, len: 16 } }),
-    ribbon([52, 176], [[[64, 198], [58, 226], [40, 238]], [[28, 246], [14, 238], [16, 224]]], { turn: 1, R: 10, w: 5.4, feather: { side: -1, from: .08, to: .5, len: 15 } }),
-    petal(30, 246, 78, 24),
-    petal(26, 0, 26, 40),
-  ].join("");
-  const axis = [petal(26, 0, 0, 70, 10), bead(15, 0, 5.2), bead(104, 0, 3.6)].join("");
-  const art = `<g transform="translate(4 ${H / 2})">${lower}<g transform="scale(1 -1)">${lower}</g>${axis}</g>`;
-  return mirror ? `<g transform="translate(${W} 0) scale(-1 1)">${art}</g>` : art;
-}
+/* several branches as one piece; (dx, dy) moves them within its picture, which is drawn larger than the stems so no leaf is cut off */
+const spray = (seed, dx, dy, ...stems) => { const r = rng(seed); return `<g transform="translate(${dx} ${dy})">${stems.map(([x0, y0, x1, y1, o]) => branch(r, x0, y0, x1, y1, o)).join("")}</g>`; };
 
 /* ---------- the wax seal (on a 200-grid): champagne wax with an uneven edge and a rounded lip, a pressed
    plate with a raised ring inside it, and the initials standing up from the plate ---------- */
@@ -157,14 +110,15 @@ const DEFS = `
 const box = (W, H) => `filterUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}" color-interpolation-filters="sRGB"`;
 const KD = .5 / Math.sin(50 * Math.PI / 180);   // flat paper lights to exactly mid-grey…
 // a whisper of fine noise in the height: without it, gentle slopes light up as contour rings
-const GRAIN = `<feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="1" seed="3"/><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  .01 0 0 0 0" result="grain"/>`;
+let GRAIN = "";   // set per picture by render(): the noise has to be as fine as the pixels being drawn
+const grainAt = density => `<feTurbulence type="fractalNoise" baseFrequency="${(.55 * density).toFixed(2)}" numOctaves="1" seed="3"/><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  .01 0 0 0 0" result="grain"/>`;
 
 const LIGHT = {
   // …so that, on a transparent ground, only what rises or falls shows: light above mid-grey, shade below it
   pressed: (W, H, id) => `<filter id="${id}" ${box(W, H)}>
     <feColorMatrix in="SourceGraphic" type="luminanceToAlpha"/>
     <feGaussianBlur stdDeviation="1.1" result="height"/>
-    <feDiffuseLighting in="height" surfaceScale="3.5" diffuseConstant="${KD.toFixed(4)}" lighting-color="#fff" result="lit">${sun}</feDiffuseLighting>
+    <feDiffuseLighting in="height" surfaceScale="4.4" diffuseConstant="${KD.toFixed(4)}" lighting-color="#fff" result="lit">${sun}</feDiffuseLighting>
     <feColorMatrix in="lit" type="matrix" values="0 0 0 0 1  0 0 0 0 .99  0 0 0 0 .96  4 0 0 0 -2.04" result="hi"/>
     <feColorMatrix in="lit" type="matrix" values="0 0 0 0 .4  0 0 0 0 .3  0 0 0 0 .15  -1.7 0 0 0 .83" result="sh"/>
     <feMerge><feMergeNode in="sh"/><feMergeNode in="hi"/></feMerge>
@@ -180,17 +134,17 @@ const LIGHT = {
     <feSpecularLighting in="height" surfaceScale="3.5" specularConstant=".5" specularExponent="26" lighting-color="#fffbf2" result="sheen">${sun}</feSpecularLighting>
     <feComposite in="matte" in2="sheen" operator="arithmetic" k2="1" k3=".3"/>
   </filter>`,
-  // satin sealing wax in the envelope's own champagne, cut to its outline; what stands higher is a touch paler,
+  // satin sealing wax: a darker shade of the envelope's cream, cut to its outline; what stands higher is a touch paler,
   // so the lip and the initials read against the pressed plate
   wax: (W, H, id) => `<filter id="${id}" ${box(W, H)}>
     <feColorMatrix in="SourceGraphic" type="luminanceToAlpha"/>
-    <feGaussianBlur stdDeviation="1.3" result="shape"/>
+    <feGaussianBlur stdDeviation="1" result="shape"/>
     ${GRAIN}
     <feComposite in="shape" in2="grain" operator="arithmetic" k2="1" k3="1" result="height"/>
-    <feDiffuseLighting in="height" surfaceScale="7" diffuseConstant="1.12" lighting-color="#e0c594" result="matte">${sun}</feDiffuseLighting>
+    <feDiffuseLighting in="height" surfaceScale="7" diffuseConstant="1.12" lighting-color="#cdb88f" result="matte">${sun}</feDiffuseLighting>
     <feSpecularLighting in="height" surfaceScale="7" specularConstant=".35" specularExponent="18" lighting-color="#fff8e8" result="shine">${sun}</feSpecularLighting>
     <feComposite in="matte" in2="shine" operator="arithmetic" k2="1" k3="1" result="lit"/>
-    <feColorMatrix in="shape" type="matrix" values="0 0 0 0 1  0 0 0 0 .955  0 0 0 0 .84  0 0 0 1.6 -.78" result="pale"/>
+    <feColorMatrix in="shape" type="matrix" values="0 0 0 0 1  0 0 0 0 .955  0 0 0 0 .86  0 0 0 1.5 -.74" result="pale"/>
     <feMerge result="toned"><feMergeNode in="lit"/><feMergeNode in="pale"/></feMerge>
     <feComposite in="toned" in2="SourceAlpha" operator="in"/>
   </filter>`,
@@ -230,33 +184,54 @@ const LIGHT = {
 };
 const NEEDS_GROUND = new Set(["pressed", "paper"]);   // these light the whole sheet, so it starts as flat black (height 0)
 
-/* layers: [light, art] pairs, bottom first ("plain" = drawn as it is, unlit); art is drawn on a W×H grid and the picture comes out `scale` times that */
-async function render(file, W, H, layers, { scale = 2, quality = 88 } = {}){
+/* layers: [light, art] pairs, bottom first ("plain" = drawn as it is, unlit); art is drawn on a W×H grid and
+   the picture comes out `scale` times that. It is lit at twice that size and reduced, which smooths every edge. */
+const SUPER = 2;
+async function render(file, W, H, layers, { scale = 3, quality = 86, alphaQuality = 88 } = {}){
+  GRAIN = grainAt(scale * SUPER);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
     <defs>${DEFS}${layers.map(([light], i) => LIGHT[light]?.(W, H, `l${i}`) ?? "").join("")}</defs>
     ${layers.map(([light, art], i) => `<g ${LIGHT[light] ? `filter="url(#l${i})"` : ""}>${NEEDS_GROUND.has(light) ? `<rect width="${W}" height="${H}" fill="#000"/>` : ""}${art}</g>`).join("")}</svg>`;
   const out = join(root, "public", file);
-  const info = await sharp(Buffer.from(svg), { density: 72 * scale }).webp({ quality, alphaQuality: 92 }).toFile(out);
-  console.log(`public/${file}`.padEnd(36), `${info.width}×${info.height}`.padEnd(10), `${Math.round(info.size / 1024)} KB`);
+  const info = await sharp(Buffer.from(svg), { density: 72 * scale * SUPER, limitInputPixels: false })
+    .resize(Math.round(W * scale), Math.round(H * scale), { kernel: "lanczos3" })
+    .webp({ quality, alphaQuality, effort: 6, smartSubsample: true }).toFile(out);
+  console.log(`public/${file}`.padEnd(36), `${info.width}×${info.height}`.padEnd(11), `${Math.round(info.size / 1024)} KB`);
 }
 
-/* ---------- the pieces ---------- */
+/* ---------- the pieces: each is a few branches growing in from an edge of its flap (sizes are CSS px on a phone) ---------- */
 mkdirSync(join(root, "public/emboss"), { recursive: true });
 
-await render("emboss/ornament-top.webp", 420, 330, [["pressed", damask(420, 330, false)]]);
-await render("emboss/ornament-bottom.webp", 420, 330, [["pressed", damask(420, 330, true)]]);
-await render("emboss/ornament-left.webp", 130, 560, [["pressed", sideDamask(130, 560, false)]]);
-await render("emboss/ornament-right.webp", 130, 560, [["pressed", sideDamask(130, 560, true)]]);
-await render("emboss/badge.webp", 200, 200, [["wax", seal()]], { scale: 2.04, quality: 92 });   // shown at 136px, drawn 3×
-await render("emboss/pendant.webp", 76, 124, [["silk", FEATHER], ["plain", GILT], ["pearl", PEARL], ["gold", CORD]], { scale: 2.4, quality: 92 });
+// top flap: a great spray from the top-left corner, a smaller one from the top-right
+await render("emboss/leaves-top-left.webp", 340, 380, [["pressed", spray(11, 0, 0,
+  [-12, 44, 232, 292, { bend: 38, leafLen: 90, leaves: 7 }],
+  [-12, 6, 250, 104, { bend: -22, leafLen: 72, leaves: 6, berries: .35 }],
+  [-12, 130, 104, 312, { bend: 18, leafLen: 66, leaves: 5 }])]]);
+await render("emboss/leaves-top-right.webp", 240, 280, [["pressed", spray(23, 50, 0,
+  [202, -12, 52, 176, { bend: -20, leafLen: 68, leaves: 6 }],
+  [202, 62, 110, 215, { bend: 12, leafLen: 50, leaves: 4, berries: .5 }])]]);
+// side flaps: branches reaching in from the edges
+await render("emboss/leaves-left.webp", 190, 320, [["pressed", spray(31, 0, 30,
+  [-12, 30, 122, 150, { bend: 16, leafLen: 62, leaves: 5 }],
+  [-12, 120, 96, 246, { bend: -12, leafLen: 54, leaves: 5, berries: .35 }])]]);
+await render("emboss/leaves-right.webp", 180, 260, [["pressed", spray(43, 50, 30,
+  [142, 14, 26, 150, { bend: -14, leafLen: 56, leaves: 5, berries: .35 }])]]);
+// bottom flap: one branch along the foot of the envelope, one up its left edge
+await render("emboss/leaves-bottom.webp", 350, 260, [["pressed", spray(57, 0, 60,
+  [-12, 196, 262, 132, { bend: -20, leafLen: 76, leaves: 7 }],
+  [-12, 150, 60, 10, { bend: 10, leafLen: 58, leaves: 5 }])]]);
 
-// behind the cards: the same scrollwork as a damask repeat, each column dropped half a step
+await render("emboss/badge.webp", 200, 200, [["wax", seal()]], { scale: 4.08, quality: 95, alphaQuality: 100 });   // shown at 136px, drawn 6× so it stays sharp on any phone
+await render("emboss/pendant.webp", 76, 124, [["silk", FEATHER], ["plain", GILT], ["pearl", PEARL], ["gold", CORD]], { scale: 5, quality: 95, alphaQuality: 100 });
+
+// behind the cards: one branch per cell, turned every which way
 {
-  const W = 600, H = 1000, k = .62;
+  const r = rng(7), W = 600, H = 1000;
   let all = "";
-  for(let col = 0; col < 3; col++) for(let row = -1; row < 5; row++){
-    const x = col * 300, y = row * 250 + (col % 2 ? 125 : 0) + 60;
-    all += `<g transform="translate(${f(x - 210 * k)} ${f(y - 165 * k)}) scale(${k})">${damask(420, 330, (row + col) % 2 === 0)}</g>`;
+  for(let i = 0; i < 15; i++){
+    const cx = ((i % 3) + .5) * W / 3 + (r() - .5) * 60, cy = (Math.floor(i / 3) + .5) * H / 5 + (r() - .5) * 60;
+    const a = r() * 6.283, l = 95 + r() * 40;
+    all += branch(r, cx - Math.cos(a) * l, cy - Math.sin(a) * l, cx + Math.cos(a) * l, cy + Math.sin(a) * l, { bend: (r() - .5) * 60, leafLen: 56, leaves: 6, berries: .25 });
   }
-  await render("paper.webp", W, H, [["paper", all]], { quality: 82 });
+  await render("paper.webp", W, H, [["paper", all]], { scale: 2.4, quality: 84 });
 }

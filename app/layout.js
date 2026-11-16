@@ -12,7 +12,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {["badge", "pendant", "ornament-top", "ornament-bottom", "ornament-left", "ornament-right"].map((n) => (
+        {["badge", "pendant", "leaves-top-left", "leaves-top-right", "leaves-left", "leaves-right", "leaves-bottom"].map((n) => (
           <link key={n} rel="preload" href={`/emboss/${n}.webp`} as="image" type="image/webp" />
         ))}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
