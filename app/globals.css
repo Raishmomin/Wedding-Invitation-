@@ -13,6 +13,7 @@
   --font-mono:"Bodoni Moda","Didot","Bodoni MT",Georgia,serif;
   --font-sign:"Mrs Saint Delafield","Snell Roundhand",cursive;
   --font-body:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+  --paper:url("/paper.webp");   /* embossed floral paper, made by scripts/emboss-paper.mjs */
   --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .35  0 0 0 0 .25  0 0 0 0 .12  0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 *{box-sizing:border-box;margin:0}
@@ -28,7 +29,7 @@ body{
   overflow-x:hidden;
 }
 body.locked{overflow:hidden}
-#ground{position:fixed;inset:0;z-index:0;background:linear-gradient(rgba(214,198,166,.62),rgba(205,187,152,.7)), var(--botanic) center/cover}
+#ground{position:fixed;inset:0;z-index:0;background:linear-gradient(rgba(214,198,166,.62),rgba(205,187,152,.7)), var(--paper) center/cover}
 #dust{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
 #progress{position:fixed;top:0;left:0;height:2px;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,var(--gold-light),var(--gold));z-index:40}
 #music{position:fixed;right:14px;bottom:14px;z-index:45;width:48px;height:48px;border-radius:50%;border:1px solid var(--gold);cursor:pointer;
@@ -82,12 +83,14 @@ h2.pre{letter-spacing:.34em;opacity:0}
 #gate{position:fixed;inset:0;z-index:50;perspective:1900px;overflow:hidden}
 #gate.open{pointer-events:none}
 .fw{position:absolute;inset:0;backface-visibility:hidden;transition:transform 1.5s cubic-bezier(.6,.04,.3,1)}
-.fw .f{position:absolute;inset:0;background-color:#f3ecdf;background-image:var(--grain), var(--botanic);background-position:center;background-size:auto, cover}
+.fw .f{position:absolute;inset:0;background-color:#f2ebde}
+.fw .f::before{content:"";position:absolute;inset:0;background:var(--grain), var(--paper) center/cover;opacity:0;transition:opacity 1s ease}
+.paper .fw .f::before{opacity:1}
 .fw .f::after{content:"";position:absolute;inset:0}
 .fw.l{transform-origin:0 50%}.fw.l .f{clip-path:polygon(0 0,50.2% 48%,0 100%)}.fw.l .f::after{background:linear-gradient(90deg,rgba(120,95,50,.02),rgba(120,95,50,.14))}
 .fw.r{transform-origin:100% 50%}.fw.r .f{clip-path:polygon(100% 0,49.8% 48%,100% 100%)}.fw.r .f::after{background:linear-gradient(270deg,rgba(120,95,50,.03),rgba(120,95,50,.17))}
-.fw.b{transform-origin:50% 100%;filter:drop-shadow(0 -3px 5px rgba(95,72,35,.3))}.fw.b .f{clip-path:polygon(0 100%,100% 100%,50% 48%)}.fw.b .f::after{background:linear-gradient(0deg,rgba(255,255,255,.1),rgba(255,255,255,0) 60%)}
-.fw.t{transform-origin:50% 0;filter:drop-shadow(0 4px 7px rgba(95,72,35,.38));animation:breathe 5s ease-in-out infinite}.fw.t .f{clip-path:polygon(0 0,100% 0,50% 48%)}.fw.t .f::after{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04))}
+.fw.b{transform-origin:50% 100%;filter:drop-shadow(0 -1px 0 rgba(255,252,244,.85)) drop-shadow(0 -3px 6px rgba(95,72,35,.3))}.fw.b .f{clip-path:polygon(0 100%,100% 100%,50% 48%)}.fw.b .f::after{background:linear-gradient(0deg,rgba(255,255,255,.1),rgba(255,255,255,0) 60%)}
+.fw.t{transform-origin:50% 0;filter:drop-shadow(0 1px 0 rgba(255,252,244,.9)) drop-shadow(0 4px 8px rgba(95,72,35,.38));animation:breathe 5s ease-in-out infinite}.fw.t .f{clip-path:polygon(0 0,100% 0,50% 48%)}.fw.t .f::after{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04))}
 #gate.open .fw.t{transform:rotateX(-118deg);transition-delay:.3s;animation:none}
 #gate.open .fw.b{transform:rotateX(118deg);transition-delay:.5s}
 #gate.open .fw.l{transform:rotateY(118deg);transition-delay:.72s}
@@ -105,7 +108,8 @@ h2.pre{letter-spacing:.34em;opacity:0}
 .tag{
   position:absolute;left:50%;top:calc(48% + 92px);translate:-50% 0;width:min(84vw,340px);padding:20px 18px 18px;text-align:center;z-index:2;
   background:var(--grain), linear-gradient(180deg,#fdfaf3,#f4ecdd);border-radius:4px;
-  box-shadow:0 0 0 1px rgba(179,146,90,.5) inset,0 0 0 5px #fbf7ee inset,0 0 0 6px rgba(179,146,90,.35) inset,0 14px 26px rgba(85,62,25,.3);
+  box-shadow:0 0 0 1px rgba(179,146,90,.5) inset,0 0 0 5px #fbf7ee inset,0 0 0 6px rgba(179,146,90,.35) inset,0 1px 0 rgba(255,255,255,.9) inset,
+    0 2px 0 #e4d7bf,0 3px 3px rgba(85,62,25,.2),0 10px 16px rgba(85,62,25,.18),0 22px 38px rgba(85,62,25,.22);
   display:flex;flex-direction:column;align-items:center;gap:2px;
   animation:rise 1.1s cubic-bezier(.2,.7,.2,1) backwards .9s;transition:opacity .45s, transform .6s;
 }
@@ -232,7 +236,7 @@ body.opened .stage{animation:rise 1.1s cubic-bezier(.2,.7,.2,1) backwards;animat
 @keyframes twinkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.35) rotate(45deg)}}
 @keyframes turn{0%,100%{rotate:45deg}50%{rotate:225deg}}
 @keyframes pulse{0%,100%{scale:1}50%{scale:1.045}}
-@keyframes breathe{0%,100%{filter:drop-shadow(0 4px 7px rgba(95,72,35,.38))}50%{filter:drop-shadow(0 9px 14px rgba(95,72,35,.42))}}
+@keyframes breathe{0%,100%{filter:drop-shadow(0 1px 0 rgba(255,252,244,.9)) drop-shadow(0 4px 8px rgba(95,72,35,.38))}50%{filter:drop-shadow(0 1px 0 rgba(255,252,244,.9)) drop-shadow(0 10px 16px rgba(95,72,35,.42))}}
 @keyframes sealIn{from{opacity:0;transform:scale(1.7) rotate(-18deg)}to{opacity:1;transform:none}}
 @keyframes ripple{0%{opacity:.8;transform:scale(.85)}100%{opacity:0;transform:scale(2.1)}}
 @keyframes sheen{0%,50%{background-position:120% 0}100%{background-position:-120% 0}}
