@@ -26,8 +26,8 @@ Add the guest's name to the end of the link, with hyphens for spaces:
 | `lib/config.js` | **Edit this.** Names, initials, wedding date and time, the list of celebrations, music file |
 | `lib/markup.js` | The invitation's HTML: venues, contact numbers, wording, family name |
 | `app/globals.css` | All styles and animations (colours are at the top) |
-| `lib/invitation.js` | The script: seal, crest, entrance, countdown, timeline, music |
-| `scripts/emboss.mjs` | Draws the embossed initials, branches and paper into `public/emboss/` and `public/paper.webp` (run `npm run emboss` after changing it or the initials) |
+| `lib/invitation.js` | The script: crest, entrance, countdown, timeline, music |
+| `scripts/emboss.mjs` | Draws the envelope's embossed scrollwork, the gold RF emblem and the paper into `public/emboss/` and `public/paper.webp` (run `npm run emboss` after changing it or the initials) |
 | `lib/guest.js` | Turns the link ending into a guest name |
 | `components/Invitation.jsx` | The component that shows the invitation |
 | `app/page.js` | The general link |
