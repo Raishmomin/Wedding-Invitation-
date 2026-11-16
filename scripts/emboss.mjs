@@ -2,7 +2,8 @@
 
      public/emboss/ornament-top|bottom.webp   baroque scrollwork pressed into the top and bottom flaps
      public/emboss/ornament-left|right.webp   tall scrollwork for the two side flaps
-     public/emboss/badge.webp                 the seal: a pearl disc, gold rim, and our crest raised in gold
+     public/emboss/badge.webp                 the wax seal, with our initials pressed into it
+     public/emboss/pendant.webp               the drop that hangs from it: gold cord, a pearl, a silk feather
      public/paper.webp                        the same scrollwork as an all-over damask, behind the cards
 
    Run it again after changing anything here or the initials in lib/config.js:   npm run emboss
@@ -115,34 +116,35 @@ function sideDamask(W, H, mirror){
   return mirror ? `<g transform="translate(${W} 0) scale(-1 1)">${art}</g>` : art;
 }
 
-/* ---------- our crest: the laurel and initials of the monogram, on its 200-grid, scaled by k about the centre ---------- */
-function crest(k){
+/* ---------- the wax seal (on a 200-grid): champagne wax with an uneven edge and a rounded lip, a pressed
+   plate with a raised ring inside it, and the initials standing up from the plate ---------- */
+function seal(){
   const [a, b] = CONFIG.initials;
-  const font = `font-family="Bodoni Moda" font-weight="700" font-size="68" text-anchor="middle"`;   // the sturdy cut: hairlines survive
-  let wreath = "";
-  for(const side of [-1, 1]){
-    wreath += `<path d="M100 159A59 59 0 0 ${side < 0 ? 1 : 0} ${f(100 + side * 59 * Math.sin(2.72))} ${f(100 + 59 * Math.cos(2.72))}" fill="none" stroke="#a8a8a8" stroke-width="3.2" stroke-linecap="round"/>`;
-    for(let j = 0; j < 10; j++){
-      const an = (14 + j * 14.4) * Math.PI / 180, out = j % 2 ? 63 : 53.5;
-      const x = 100 + side * out * Math.sin(an), y = 100 + out * Math.cos(an), rot = -side * (an * 57.296) + side * (j % 2 ? 62 : 118);
-      wreath += `<path transform="translate(${f(x)} ${f(y)}) rotate(${f(rot)})" d="M0 -8.2Q4.6 0 0 8.2Q-4.6 0 0 -8.2Z" fill="url(#ridgeX)"/>`;
-    }
+  const font = `font-family="Bodoni Moda" font-weight="700" font-size="80" text-anchor="middle"`;   // the sturdy cut: hairlines survive
+  let edge = "";
+  for(let i = 0; i <= 160; i++){
+    const t = i / 160 * 6.2832, rr = 90 + 3.2 * Math.sin(5 * t + .6) + 2.2 * Math.sin(8 * t + 2.1) + 1.2 * Math.sin(13 * t + .9);
+    edge += (i ? "L" : "M") + f(100 + rr * Math.cos(t)) + " " + f(100 + rr * Math.sin(t));
   }
-  return `<g transform="translate(100 100) scale(${k}) translate(-100 -100)">
-    <clipPath id="under"><text x="87" y="122" ${font}>${a}</text></clipPath>
-    ${wreath}
-    <rect x="96.5" y="38" width="7" height="7" fill="#d0d0d0" transform="rotate(45 100 41.5)"/>
-    <circle cx="100" cy="159" r="2.6" fill="#d0d0d0"/>
-    <text x="87" y="122" ${font} fill="#c2c2c2">${a}</text>
-    <text x="119" y="135" ${font} font-style="italic" fill="none" stroke="#3a3a3a" stroke-width="3.2" stroke-linejoin="round" clip-path="url(#under)">${b}</text>
-    <text x="119" y="135" ${font} font-style="italic" fill="#d8d8d8">${b}</text>
-  </g>`;
+  const PLATE = "#7e7e7e";
+  return `<clipPath id="under"><text x="84" y="129" ${font}>${a}</text></clipPath>
+    <path d="${edge}Z" fill="url(#lip)"/>
+    <circle cx="100" cy="100" r="68" fill="${PLATE}"/>
+    <circle cx="100" cy="100" r="61" fill="none" stroke="#b4b4b4" stroke-width="3"/>
+    <text x="84" y="129" ${font} fill="#b8b8b8">${a}</text>
+    <text x="121" y="143" ${font} font-style="italic" fill="none" stroke="${PLATE}" stroke-width="3.6" stroke-linejoin="round" clip-path="url(#under)">${b}</text>
+    <text x="121" y="143" ${font} font-style="italic" fill="#c4c4c4">${b}</text>`;
 }
 
-/* The seal, in layers: a pearl disc with a rounded edge, the soft gloss on it, then everything gold (a rounded rim and the crest). */
-const PEARL = `<circle cx="100" cy="100" r="91" fill="url(#cabochon)"/>`;
-const GLOSS = `<ellipse cx="74" cy="62" rx="56" ry="40" fill="url(#gloss)" transform="rotate(-28 74 62)"/>`;
-const RIM = `<circle cx="100" cy="100" r="91" fill="none" stroke="#7e7e7e" stroke-width="10"/><circle cx="100" cy="100" r="91" fill="none" stroke="#e2e2e2" stroke-width="4.4"/>`;
+/* ---------- its pendant (on a 76×124 grid): three silk petals, their gilt edges, a pearl, and the gold cord and beads ---------- */
+const PETALS = ["M38 46C30 54 8 76 12 110C22 104 28 96 32 86C38 72 40 58 38 46Z", "M38 46C46 54 68 76 64 110C54 104 48 96 44 86C38 72 36 58 38 46Z",
+  "M38 46C52 64 54 96 40 122C36 112 34 104 30 96C24 80 28 62 38 46Z"];
+const FEATHER = PETALS.map(d => `<path d="${d}" fill="url(#ridgeX)" stroke="#555" stroke-width="1"/>`).join("");
+const GILT = `<g fill="none" stroke="#c2a05e" stroke-width=".6" stroke-linecap="round" opacity=".75">${PETALS.map(d => `<path d="${d}"/>`).join("")}
+  <path d="M38 52C42 76 43 98 40 116M37 52C31 70 20 88 15 104M39 52C45 70 56 88 61 104"/></g>`;
+const PEARL = `<circle cx="38" cy="31.5" r="9.2" fill="url(#ball)"/>`;
+const CORD = `<path d="M38 0V18" stroke="#9a9a9a" stroke-width="2.2"/><path d="M38 0V18" stroke="#d6d6d6" stroke-width=".9"/>
+  <circle cx="38" cy="19.4" r="3.5" fill="url(#ball)"/><circle cx="38" cy="43.6" r="3.7" fill="url(#ball)"/>`;
 
 /* ---------- lighting ---------- */
 const sun = `<feDistantLight azimuth="225" elevation="50"/>`;   // from the top left
@@ -150,10 +152,12 @@ const DEFS = `
   <radialGradient id="dome" cx=".42" cy=".4" r=".62"><stop offset="0" stop-color="#d8d8d8"/><stop offset=".72" stop-color="#ababab"/><stop offset="1" stop-color="#8a8a8a"/></radialGradient>
   <linearGradient id="ridge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a7a7a"/><stop offset=".5" stop-color="#c4c4c4"/><stop offset="1" stop-color="#7a7a7a"/></linearGradient>
   <linearGradient id="ridgeX" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a8a8a"/><stop offset=".5" stop-color="#dadada"/><stop offset="1" stop-color="#8a8a8a"/></linearGradient>
-  <radialGradient id="cabochon"><stop offset="0" stop-color="#e6e6e6"/><stop offset=".74" stop-color="#e6e6e6"/><stop offset="1" stop-color="#5c5c5c"/></radialGradient>
-  <radialGradient id="gloss"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>`;
+  <radialGradient id="lip"><stop offset="0" stop-color="#b0b0b0"/><stop offset=".76" stop-color="#b4b4b4"/><stop offset=".88" stop-color="#d6d6d6"/><stop offset="1" stop-color="#909090"/></radialGradient>
+  <radialGradient id="ball"><stop offset="0" stop-color="#f0f0f0"/><stop offset=".6" stop-color="#cfcfcf"/><stop offset="1" stop-color="#5a5a5a"/></radialGradient>`;
 const box = (W, H) => `filterUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}" color-interpolation-filters="sRGB"`;
 const KD = .5 / Math.sin(50 * Math.PI / 180);   // flat paper lights to exactly mid-grey…
+// a whisper of fine noise in the height: without it, gentle slopes light up as contour rings
+const GRAIN = `<feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="1" seed="3"/><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  .01 0 0 0 0" result="grain"/>`;
 
 const LIGHT = {
   // …so that, on a transparent ground, only what rises or falls shows: light above mid-grey, shade below it
@@ -176,14 +180,40 @@ const LIGHT = {
     <feSpecularLighting in="height" surfaceScale="3.5" specularConstant=".5" specularExponent="26" lighting-color="#fffbf2" result="sheen">${sun}</feSpecularLighting>
     <feComposite in="matte" in2="sheen" operator="arithmetic" k2="1" k3=".3"/>
   </filter>`,
-  // a glossy ivory cabochon, cut to its own outline
+  // satin sealing wax in the envelope's own champagne, cut to its outline; what stands higher is a touch paler,
+  // so the lip and the initials read against the pressed plate
+  wax: (W, H, id) => `<filter id="${id}" ${box(W, H)}>
+    <feColorMatrix in="SourceGraphic" type="luminanceToAlpha"/>
+    <feGaussianBlur stdDeviation="1.3" result="shape"/>
+    ${GRAIN}
+    <feComposite in="shape" in2="grain" operator="arithmetic" k2="1" k3="1" result="height"/>
+    <feDiffuseLighting in="height" surfaceScale="7" diffuseConstant="1.12" lighting-color="#e0c594" result="matte">${sun}</feDiffuseLighting>
+    <feSpecularLighting in="height" surfaceScale="7" specularConstant=".35" specularExponent="18" lighting-color="#fff8e8" result="shine">${sun}</feSpecularLighting>
+    <feComposite in="matte" in2="shine" operator="arithmetic" k2="1" k3="1" result="lit"/>
+    <feColorMatrix in="shape" type="matrix" values="0 0 0 0 1  0 0 0 0 .955  0 0 0 0 .84  0 0 0 1.6 -.78" result="pale"/>
+    <feMerge result="toned"><feMergeNode in="lit"/><feMergeNode in="pale"/></feMerge>
+    <feComposite in="toned" in2="SourceAlpha" operator="in"/>
+  </filter>`,
+  // glossy ivory (the pearl, the silk), cut to its own outline
   pearl: (W, H, id) => `<filter id="${id}" ${box(W, H)}>
     <feColorMatrix in="SourceGraphic" type="luminanceToAlpha"/>
-    <feGaussianBlur stdDeviation="2.4" result="height"/>
-    <feDiffuseLighting in="height" surfaceScale="12" diffuseConstant="1.27" lighting-color="#fbf5ea" result="matte">${sun}</feDiffuseLighting>
-    <feSpecularLighting in="height" surfaceScale="12" specularConstant=".4" specularExponent="34" lighting-color="#fff" result="shine">${sun}</feSpecularLighting>
+    <feGaussianBlur stdDeviation="1.2" result="shape"/>
+    ${GRAIN}
+    <feComposite in="shape" in2="grain" operator="arithmetic" k2="1" k3="1" result="height"/>
+    <feDiffuseLighting in="height" surfaceScale="7" diffuseConstant="1.27" lighting-color="#fbf5ea" result="matte">${sun}</feDiffuseLighting>
+    <feSpecularLighting in="height" surfaceScale="7" specularConstant=".4" specularExponent="34" lighting-color="#fff" result="shine">${sun}</feSpecularLighting>
     <feComposite in="matte" in2="shine" operator="arithmetic" k2="1" k3="1" result="lit"/>
     <feComposite in="lit" in2="SourceAlpha" operator="in"/>
+  </filter>`,
+  // silk: soft, matte, a little see-through
+  silk: (W, H, id) => `<filter id="${id}" ${box(W, H)}>
+    <feColorMatrix in="SourceGraphic" type="luminanceToAlpha"/>
+    <feGaussianBlur stdDeviation="1.6" result="shape"/>
+    ${GRAIN}
+    <feComposite in="shape" in2="grain" operator="arithmetic" k2="1" k3="1" result="height"/>
+    <feDiffuseLighting in="height" surfaceScale="3.2" diffuseConstant="1.26" lighting-color="#f7efdf" result="matte">${sun}</feDiffuseLighting>
+    <feComposite in="matte" in2="SourceAlpha" operator="in"/>
+    <feComponentTransfer><feFuncA type="linear" slope=".93"/></feComponentTransfer>
   </filter>`,
   // polished gold, cut to its own outline, with the soft shadow it casts on whatever lies beneath
   gold: (W, H, id) => `<filter id="${id}" ${box(W, H)}>
@@ -217,7 +247,8 @@ await render("emboss/ornament-top.webp", 420, 330, [["pressed", damask(420, 330,
 await render("emboss/ornament-bottom.webp", 420, 330, [["pressed", damask(420, 330, true)]]);
 await render("emboss/ornament-left.webp", 130, 560, [["pressed", sideDamask(130, 560, false)]]);
 await render("emboss/ornament-right.webp", 130, 560, [["pressed", sideDamask(130, 560, true)]]);
-await render("emboss/badge.webp", 200, 200, [["pearl", PEARL], ["plain", GLOSS], ["gold", RIM + crest(1.04)]], { scale: 2.04, quality: 92 });   // shown at 136px, drawn 3×
+await render("emboss/badge.webp", 200, 200, [["wax", seal()]], { scale: 2.04, quality: 92 });   // shown at 136px, drawn 3×
+await render("emboss/pendant.webp", 76, 124, [["silk", FEATHER], ["plain", GILT], ["pearl", PEARL], ["gold", CORD]], { scale: 2.4, quality: 92 });
 
 // behind the cards: the same scrollwork as a damask repeat, each column dropped half a step
 {
