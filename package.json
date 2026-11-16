@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "paper": "node scripts/emboss-paper.mjs"
+    "emboss": "node scripts/emboss.mjs"
   },
   "dependencies": {
     "next": "16.4.6",
