@@ -111,9 +111,9 @@ h2.pre{letter-spacing:.34em;opacity:0}
 .drop{position:absolute;left:50%;top:calc(100% - 9px);height:var(--drop);width:auto;translate:-50% 0;transform-origin:50% 0;pointer-events:none;
   filter:drop-shadow(0 4px 4px rgba(70,48,10,.28));animation:sway 5.5s ease-in-out infinite;transition:opacity .4s}
 #gate.open .drop{opacity:0}
-/* a glint that crosses the seal only: its own outline is the mask */
+/* a glint that crosses the seal only: its own outline (--seal, the picture chosen in lib/config.js) is the mask */
 .seal::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 38%,rgba(255,250,232,.5) 50%,transparent 62%) 120% 0/300% 100%;
-  -webkit-mask:url(/emboss/badge.webp) center/contain no-repeat;mask:url(/emboss/badge.webp) center/contain no-repeat;animation:sheen 4.5s ease-in-out infinite 2s}
+  -webkit-mask:var(--seal) center/contain no-repeat;mask:var(--seal) center/contain no-repeat;animation:sheen 4.5s ease-in-out infinite 2s}
 #gate.open .seal{transform:scale(1.25) translateY(-14px);opacity:0}
 .ripple{position:absolute;inset:4px;border-radius:50%;border:1px solid rgba(201,166,94,.9);opacity:0;pointer-events:none}
 .ripple.idle{animation:ripple 2.8s ease-out infinite 2s}
@@ -175,6 +175,7 @@ body.opened .names .n span{animation:letter 1s cubic-bezier(.2,.7,.2,1) backward
 .bigdate b{font-weight:300;font-size:clamp(3.6rem,18vw,5rem);line-height:1;letter-spacing:.04em}
 .bigdate .and .sign{font-size:2.5rem;margin:0 0 -4px}
 .card p.text{max-width:20rem;text-wrap:pretty}
+.card p.words{font-style:italic;font-size:1.34rem;line-height:1.5;max-width:19rem}   /* the little one's own words */
 .from{font-size:clamp(2.5rem,11vw,3rem);margin-top:2px;text-wrap:balance}
 
 /* calendar */
