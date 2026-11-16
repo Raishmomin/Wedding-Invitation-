@@ -1,4 +1,4 @@
-/* Layout idea: a botanical-print envelope, four flaps folded to an embossed seal, unfolds onto a
+/* Layout idea: an embossed floral-paper envelope, four flaps folded to an embossed seal, unfolds onto a
    column of rounded cream cards. Thin capitals, pearls resting on the cards, gold kept to fine detail. */
 :root{
   color-scheme: light;
@@ -78,7 +78,7 @@ h2.pre{letter-spacing:.34em;opacity:0}
 .mono .mdate{font-family:var(--font-mono);font-size:6.4px;letter-spacing:.34em;fill:var(--gold);transition:opacity 1.4s ease 2s}
 .mono.pre .mdate{opacity:0}
 
-/* ---------- entrance: four botanical flaps and a seal ---------- */
+/* ---------- entrance: four embossed-paper flaps and a seal ---------- */
 #gate{position:fixed;inset:0;z-index:50;perspective:1900px;overflow:hidden}
 #gate.open{pointer-events:none}
 .fw{position:absolute;inset:0;backface-visibility:hidden;transition:transform 1.5s cubic-bezier(.6,.04,.3,1)}
