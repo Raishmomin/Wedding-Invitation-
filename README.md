@@ -23,7 +23,7 @@ Add the guest's name to the end of the link, with hyphens for spaces:
 
 | File | What it holds |
 |---|---|
-| `lib/config.js` | **Edit this.** Names, initials, wedding date and time, the list of celebrations, music file, seal lettering (`sealLetters`: `"dark"` or `"light"`) |
+| `lib/config.js` | **Edit this.** Names, initials, wedding date and time, the list of celebrations, music file, seal lettering (`sealLetters`: `"dark"` or `"light"`), the little one's card (`littleOne`) |
 | `lib/markup.js` | The invitation's HTML: venues, contact numbers, wording, family name |
 | `app/globals.css` | All styles and animations (colours are at the top) |
 | `lib/invitation.js` | The script: crest, entrance, countdown, timeline, music |
