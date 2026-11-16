@@ -111,9 +111,9 @@ h2.pre{letter-spacing:.34em;opacity:0}
 .drop{position:absolute;left:50%;top:calc(100% - 9px);height:var(--drop);width:auto;translate:-50% 0;transform-origin:50% 0;pointer-events:none;
   filter:drop-shadow(0 4px 4px rgba(70,48,10,.28));animation:sway 5.5s ease-in-out infinite;transition:opacity .4s}
 #gate.open .drop{opacity:0}
-/* a glint that crosses the seal only: its own outline is the mask */
+/* a glint that crosses the seal only: its own outline (--seal, the picture chosen in lib/config.js) is the mask */
 .seal::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 38%,rgba(255,250,232,.5) 50%,transparent 62%) 120% 0/300% 100%;
-  -webkit-mask:url(/emboss/badge.webp) center/contain no-repeat;mask:url(/emboss/badge.webp) center/contain no-repeat;animation:sheen 4.5s ease-in-out infinite 2s}
+  -webkit-mask:var(--seal) center/contain no-repeat;mask:var(--seal) center/contain no-repeat;animation:sheen 4.5s ease-in-out infinite 2s}
 #gate.open .seal{transform:scale(1.25) translateY(-14px);opacity:0}
 .ripple{position:absolute;inset:4px;border-radius:50%;border:1px solid rgba(201,166,94,.9);opacity:0;pointer-events:none}
 .ripple.idle{animation:ripple 2.8s ease-out infinite 2s}

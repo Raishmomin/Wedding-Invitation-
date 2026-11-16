@@ -1,11 +1,13 @@
 /* Makes the artwork for the envelope, lit once here because lighting is too slow for phones:
 
      public/emboss/leaves-*.webp     leafy branches pressed into the flaps (top-left, top-right, left, right, bottom)
-     public/emboss/badge.webp        the wax seal, with our initials pressed into it
+     public/emboss/badge.webp        the wax seal, with our initials pressed into it in the wax's own tone
+     public/emboss/badge-dark.webp   the same seal with the initials in dark ink
      public/emboss/pendant.webp      the drop that hangs from it: gold cord, a pearl, a silk feather
      public/paper.webp               the same leaves scattered all over, behind the cards
 
    Run it again after changing anything here or the initials in lib/config.js:   npm run emboss
+   To redraw only some pieces, name them:   npm run emboss -- badge   (every picture whose name contains "badge")
 
    Each piece is drawn as a height map (brighter = higher) and lit from the top left. The leaves keep only
    their light and shade, on a transparent ground, so they sit on the paper colour set in globals.css. */
@@ -74,19 +76,26 @@ const spray = (seed, dx, dy, ...stems) => { const r = rng(seed); return `<g tran
 function seal(){
   const [a, b] = CONFIG.initials;
   const font = `font-family="Bodoni Moda" font-weight="700" font-size="80" text-anchor="middle"`;   // the sturdy cut: hairlines survive
+  const R = `x="84" y="129" ${font}`, F = `x="121" y="143" ${font} font-style="italic"`;
   let edge = "";
   for(let i = 0; i <= 160; i++){
     const t = i / 160 * 6.2832, rr = 90 + 3.2 * Math.sin(5 * t + .6) + 2.2 * Math.sin(8 * t + 2.1) + 1.2 * Math.sin(13 * t + .9);
     edge += (i ? "L" : "M") + f(100 + rr * Math.cos(t)) + " " + f(100 + rr * Math.sin(t));
   }
   const PLATE = "#7e7e7e";
-  return `<clipPath id="under"><text x="84" y="129" ${font}>${a}</text></clipPath>
-    <path d="${edge}Z" fill="url(#lip)"/>
-    <circle cx="100" cy="100" r="68" fill="${PLATE}"/>
-    <circle cx="100" cy="100" r="61" fill="none" stroke="#b4b4b4" stroke-width="3"/>
-    <text x="84" y="129" ${font} fill="#b8b8b8">${a}</text>
-    <text x="121" y="143" ${font} font-style="italic" fill="none" stroke="${PLATE}" stroke-width="3.6" stroke-linejoin="round" clip-path="url(#under)">${b}</text>
-    <text x="121" y="143" ${font} font-style="italic" fill="#c4c4c4">${b}</text>`;
+  return {
+    wax: `<clipPath id="under"><text ${R}>${a}</text></clipPath>
+      <path d="${edge}Z" fill="url(#lip)"/>
+      <circle cx="100" cy="100" r="68" fill="${PLATE}"/>
+      <circle cx="100" cy="100" r="61" fill="none" stroke="#b4b4b4" stroke-width="3"/>
+      <text ${R} fill="#b8b8b8">${a}</text>
+      <text ${F} fill="none" stroke="${PLATE}" stroke-width="3.6" stroke-linejoin="round" clip-path="url(#under)">${b}</text>
+      <text ${F} fill="#c4c4c4">${b}</text>`,
+    // the same two letters on their own (the first with a gap cut where the second crosses it), to be laid over the wax in a dark tone
+    letters: `<mask id="gap"><rect width="200" height="200" fill="#fff"/><text ${F} fill="#000" stroke="#000" stroke-width="6" stroke-linejoin="round">${b}</text></mask>
+      <text ${R} fill="#b8b8b8" mask="url(#gap)">${a}</text>
+      <text ${F} fill="#c4c4c4">${b}</text>`,
+  };
 }
 
 /* ---------- its pendant (on a 76×124 grid): three silk petals, their gilt edges, a pearl, and the gold cord and beads ---------- */
@@ -148,6 +157,17 @@ const LIGHT = {
     <feMerge result="toned"><feMergeNode in="lit"/><feMergeNode in="pale"/></feMerge>
     <feComposite in="toned" in2="SourceAlpha" operator="in"/>
   </filter>`,
+  // the invitation's dark ink-brown with a faint warm sheen, cut to its outline: the letters of the dark-lettered seal
+  ink: (W, H, id) => `<filter id="${id}" ${box(W, H)}>
+    <feColorMatrix in="SourceGraphic" type="luminanceToAlpha"/>
+    <feGaussianBlur stdDeviation="1" result="shape"/>
+    ${GRAIN}
+    <feComposite in="shape" in2="grain" operator="arithmetic" k2="1" k3="1" result="height"/>
+    <feDiffuseLighting in="height" surfaceScale="4" diffuseConstant="1.15" lighting-color="#4a3826" result="matte">${sun}</feDiffuseLighting>
+    <feSpecularLighting in="height" surfaceScale="4" specularConstant=".2" specularExponent="20" lighting-color="#f3e2c0" result="shine">${sun}</feSpecularLighting>
+    <feComposite in="matte" in2="shine" operator="arithmetic" k2="1" k3="1" result="lit"/>
+    <feComposite in="lit" in2="SourceAlpha" operator="in"/>
+  </filter>`,
   // glossy ivory (the pearl, the silk), cut to its own outline
   pearl: (W, H, id) => `<filter id="${id}" ${box(W, H)}>
     <feColorMatrix in="SourceGraphic" type="luminanceToAlpha"/>
@@ -186,8 +206,9 @@ const NEEDS_GROUND = new Set(["pressed", "paper"]);   // these light the whole s
 
 /* layers: [light, art] pairs, bottom first ("plain" = drawn as it is, unlit); art is drawn on a W×H grid and
    the picture comes out `scale` times that. It is lit at twice that size and reduced, which smooths every edge. */
-const SUPER = 2;
+const SUPER = 2, ONLY = process.argv[2];
 async function render(file, W, H, layers, { scale = 3, quality = 86, alphaQuality = 88 } = {}){
+  if(ONLY && !file.includes(ONLY)) return;
   GRAIN = grainAt(scale * SUPER);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
     <defs>${DEFS}${layers.map(([light], i) => LIGHT[light]?.(W, H, `l${i}`) ?? "").join("")}</defs>
@@ -221,7 +242,10 @@ await render("emboss/leaves-bottom.webp", 350, 260, [["pressed", spray(57, 0, 60
   [-12, 196, 262, 132, { bend: -20, leafLen: 76, leaves: 7 }],
   [-12, 150, 60, 10, { bend: 10, leafLen: 58, leaves: 5 }])]]);
 
-await render("emboss/badge.webp", 200, 200, [["wax", seal()]], { scale: 4.08, quality: 95, alphaQuality: 100 });   // shown at 136px, drawn 6× so it stays sharp on any phone
+// the seal, two ways: letters in the wax's own tone, or in dark ink. lib/config.js (sealLetters) picks which one is shown.
+const SEAL = seal(), sharp6 = { scale: 4.08, quality: 95, alphaQuality: 100 };   // shown at 136px, drawn 6× so it stays sharp on any phone
+await render("emboss/badge.webp", 200, 200, [["wax", SEAL.wax]], sharp6);
+await render("emboss/badge-dark.webp", 200, 200, [["wax", SEAL.wax], ["ink", SEAL.letters]], sharp6);
 await render("emboss/pendant.webp", 76, 124, [["silk", FEATHER], ["plain", GILT], ["pearl", PEARL], ["gold", CORD]], { scale: 5, quality: 95, alphaQuality: 100 });
 
 // behind the cards: one branch per cell, turned every which way
